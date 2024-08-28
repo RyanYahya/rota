@@ -98,7 +98,10 @@ class Schedule:
             {'Date': date, '1st On-Call': doctors[0].name, '2nd On-Call': doctors[1].name}
             for date, doctors in sorted(self.schedule.items())
         ]
-        return pd.DataFrame(data)
+        df = pd.DataFrame(data)
+        df['Date'] = pd.to_datetime(df['Date']).dt.date  # Convert to date only
+        df['Day'] = df['Date'].apply(lambda x: x.strftime('%A'))  # Get day name
+        return df
 
     def get_doctor_statistics(self):
         stats = {doctor.name: {'1st On-Call': 0, '2nd On-Call': 0, 'Weekend On-Call': 0} for doctor in self.doctors}
@@ -174,24 +177,39 @@ with tab1:
             st.error("❌ Failed to generate schedule. Please check vacation days.")
 
     if st.session_state.schedule:
-        st.subheader("Generated Schedule")
-        df = st.session_state.schedule.get_dataframe()
-        st.table(df)
+        # Create a single column that spans the full width
+        col1 = st.columns(1)[0]
 
-        csv = df.to_csv(index=False)
-        st.download_button(
-            label="📥 Download CSV",
-            data=csv,
-            file_name="clinical_rota_schedule.csv",
-            mime="text/csv",
-        )
+        with col1:
+            st.subheader("Generated Schedule")
+            df = st.session_state.schedule.get_dataframe()
+            
+            # Function to highlight weekends
+            def highlight_weekend(row):
+                if row['Day'] in ['Friday', 'Saturday']:
+                    return ['background-color: rgba(255, 255, 0, 0.3); font-weight: bold']*len(row)
+                return [''] * len(row)
+            
+            # Apply the styling
+            styled_df = df.style.apply(highlight_weekend, axis=1)
+            
+            # Display the styled dataframe
+            st.write(styled_df.hide(axis='index'))
 
-        st.subheader("Doctor Statistics")
-        stats = st.session_state.schedule.get_doctor_statistics()
-        stats_df = pd.DataFrame.from_dict(stats, orient='index')
-        stats_df = stats_df.reset_index().rename(columns={'index': 'Doctor'})
-        stats_df = stats_df.sort_values('Total On-Call', ascending=False)
-        st.table(stats_df)
+            csv = df.to_csv(index=False)
+            st.download_button(
+                label="📥 Download CSV",
+                data=csv,
+                file_name="clinical_rota_schedule.csv",
+                mime="text/csv",
+            )
+
+            st.subheader("Doctor Statistics")
+            stats = st.session_state.schedule.get_doctor_statistics()
+            stats_df = pd.DataFrame.from_dict(stats, orient='index')
+            stats_df = stats_df.reset_index().rename(columns={'index': 'Doctor'})
+            stats_df = stats_df.sort_values('Total On-Call', ascending=False)
+            st.table(stats_df)
 
 with tab2:
     st.header("Manage Doctors")
