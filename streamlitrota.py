@@ -21,6 +21,7 @@ class Doctor:
         self.weekend_shifts = 0
         self.first_on_call = 0
         self.second_on_call = 0
+        self.weekend_on_calls = 0
 
 class Schedule:
     def __init__(self, doctors, start_date, end_date):
@@ -34,6 +35,7 @@ class Schedule:
             doctor.reset()
             doctor.first_on_call = 0
             doctor.second_on_call = 0
+            doctor.weekend_on_calls = 0
 
         # Shuffle the doctors list to randomize the initial order
         random.shuffle(self.doctors)
@@ -50,9 +52,9 @@ class Schedule:
 
             is_weekend = current_date.weekday() in [4, 5]  # Friday or Saturday
             
-            # Sort doctors considering preferences and balance between 1st and 2nd on-call
+            # Sort doctors considering preferences, balance between 1st and 2nd on-call, and weekend shifts
             available_doctors.sort(key=lambda d: (
-                d.weekend_shifts if is_weekend else len(d.shifts),
+                d.weekend_on_calls if is_weekend else (len(d.shifts) - d.weekend_on_calls),
                 d.last_shift or date.min,
                 d.first_on_call - d.second_on_call,  # Balance between 1st and 2nd on-call
                 -1 if d.preference == '1st' else (1 if d.preference == '2nd' else 0),  # Preference handling
@@ -79,8 +81,8 @@ class Schedule:
             second_on_call.second_on_call += 1
 
             if is_weekend:
-                first_on_call.weekend_shifts += 1
-                second_on_call.weekend_shifts += 1
+                first_on_call.weekend_on_calls += 1
+                second_on_call.weekend_on_calls += 1
 
             current_date += timedelta(days=1)
         return True
