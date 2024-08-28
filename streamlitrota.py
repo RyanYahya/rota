@@ -35,6 +35,9 @@ class Schedule:
             doctor.first_on_call = 0
             doctor.second_on_call = 0
 
+        # Shuffle the doctors list to randomize the initial order
+        random.shuffle(self.doctors)
+
         current_date = self.start_date
         while current_date <= self.end_date:
             available_doctors = [d for d in self.doctors if self.is_available(d, current_date)]
@@ -52,7 +55,7 @@ class Schedule:
                 d.weekend_shifts if is_weekend else len(d.shifts),
                 d.last_shift or date.min,
                 d.first_on_call - d.second_on_call,  # Balance between 1st and 2nd on-call
-                0 if d.preference == '1st' else (2 if d.preference == '2nd' else 1)
+                random.random()  # Add a random factor to break ties
             ))
 
             first_on_call = available_doctors[0]
